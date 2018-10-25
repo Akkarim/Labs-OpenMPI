@@ -1,20 +1,12 @@
-/* Archivo:  mpi_hola.cpp
-* Propósito: típico "hola mundo" que usa MPI.
+/* Archivo:      mpi_plantilla.cpp
+* Propósito:	Ejercicio 1
 *
-* Compilación:   mpicxx -g -Wall -o mpi_hola mpi_hola.cpp
-* Ejecución:     mpiexec -n <num_proc> ./mpi_hola "mensaje entre comillas"
-*
-* Entradas:     ...
-* Salidas:    ...
-*
-* Notas:
-* 1.  bandera DEBUG produce salida detallada para depuración.
-*
+* Compilación:   mpicxx -g -Wall -o mpi_plantilla mpi_plantilla.cpp
+* Ejecución:     mpiexec -n <num_proc> ./mpi_plantilla <secuencia de valores de parámetros>
 */
 
 #include <mpi.h> 
 #include <iostream>
-#include <sstream>
 using namespace std;
 
 //#define DEBUG
@@ -23,22 +15,14 @@ void uso(string nombre_prog);
 
 void obt_args(
 	char*    argv[]        /* in  */,
-	string&  saludo  /* out */);
-
-int obt_linea(
-	char entrada[]);
-
-const int MAX_STRING = 100;
+	int&     dato_salida  /* out */);
 
 int main(int argc, char* argv[]) {
 	int mid; // id de cada proceso
 	int cnt_proc; // cantidad de procesos
-	ostringstream buffer_saludo;
-	string saludo;
-	string msj_enviado;
-	char msj_recibido_arr[MAX_STRING];
+	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
 
-	/* Arrancar ambiente MPI */
+						   /* Arrancar ambiente MPI */
 	MPI_Init(&argc, &argv);             		/* Arranca ambiente MPI */
 	MPI_Comm_rank(MPI_COMM_WORLD, &mid); 		/* El comunicador le da valor a id (rank del proceso) */
 	MPI_Comm_size(MPI_COMM_WORLD, &cnt_proc);  /* El comunicador le da valor a p (número de procesos) */
@@ -49,28 +33,22 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 #  endif
 
-	/* ejecución del proceso principal */
-	obt_args(argv, saludo); // cada proceso obtiene la entrada desde argv
-	if (mid != 0) {
-		/* Crear el mensaje */
-		buffer_saludo << saludo << " desde proceso " << mid << " de " << cnt_proc << endl;
-		msj_enviado = buffer_saludo.str();
-		/* enviar mensaje al proceso 0 */
-		MPI_Send(msj_enviado.c_str(), msj_enviado.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-	}
-	else {
-		/* desplegar mensaje */
-		cout << saludo << " desde " << mid << " de " << cnt_proc << endl;
-		for (int q = 1; q < cnt_proc; q++) {
-			/* recibir mensaje del proceso q */
-			MPI_Recv(msj_recibido_arr, MAX_STRING, MPI_CHAR, q, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			/* desplegar mensaje del proceso q */
-			string msj_recibido_str(msj_recibido_arr, obt_linea(msj_recibido_arr));
-			cout << msj_recibido_str << endl;
-		}
-	}
+	/*-------------------ejecución del proceso principal--------------------*/
+	
+	double aciertosGlobales = 0.0; //Aciertos globales
+	double x = 0.0;
+	double y = 0.0;
+	double resultado = 0.0;
+	int intentos;
 
-	/* finalización de la ejecución paralela */
+	cout << "Digite la cantidad de procesos: " << endl;
+	cin >> cnt_proc;
+	cout << "Digite la cantidad de intentos: " << endl;
+	cin >> intentos;
+
+
+
+	/*------------------finalización de la ejecución paralela----------------*/
 	if (mid == 0)
 		cin.ignore();
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
@@ -99,32 +77,26 @@ void uso(string nombre_prog /* in */) {
    * ENTRAN:
    *		nombre_prog:  nombre del programa
    * SALEN:
-   *		saludo: saludo pasado por "línea de comandos".
+   *		dato_salida: un dato de salida con un valor de argumento pasado por "línea de comandos".
    */
 void obt_args(
 	char*    argv[]        /* in  */,
-	string&  saludo  /* out */) {
+	int&     dato_salida  /* out */) {
 
-	saludo = argv[1]; // se obtiene saludo pasado por "línea de comandos".
+	dato_salida = strtol(argv[1], NULL, 10); // se obtiene valor del argumento 1 pasado por "línea de comandos".
 
 #  ifdef DEBUG
-	cout << "saludo = " << saludo << endl;
+	cout << "dato_salida = " << dato_salida << endl;
 #  endif
 }  /* obt_args */
 
-   /*---------------------------------------------------------------------
-   * REQ: N/A
-   * MOD: N/A
-   * RET: cuenta la cantidad de caracteres en "entrada" hasta '\n'.
-   * ENTRAN:
-   *		entrada:  arreglo de caracteres con la entrada
-   * SALEN:
-   *		cantidad .
-   */
-int obt_linea(
-	char entrada[] /* in  */) {
-	int i = 0;
-	char x;
-	while ((x = entrada[i++]) != '\n');
-	return i - 1;
-} /* obt_linea */
+/*
+Betty						__.----.___
+--|            ||  (\(__)/)-'||      ;--` ||
+_||____________||___`(QQ)'___||______;____||_
+-||------------||----)  (----||-----------||-
+_||____________||___(o  o)___||______;____||_
+-||------------||----`--'----||-----------||-
+ ||            ||       `|| ||| || ||     ||
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*/
