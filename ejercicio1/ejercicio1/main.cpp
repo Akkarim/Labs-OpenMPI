@@ -9,7 +9,7 @@
 #include <iostream>
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 
 void uso(string nombre_prog);
 
@@ -18,6 +18,7 @@ void obt_args(
 	int&     dato_salida  /* out */);
 
 int main(int argc, char* argv[]) {
+
 	int mid; // id de cada proceso
 	int cnt_proc; // cantidad de procesos
 	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
@@ -36,16 +37,36 @@ int main(int argc, char* argv[]) {
 	/*-------------------ejecución del proceso principal--------------------*/
 	
 	double aciertosGlobales = 0.0; //Aciertos globales
+	double aciertosLocales = 0.0; //Aciertos locales
 	double x = 0.0;
 	double y = 0.0;
 	double resultado = 0.0;
-	int intentos;
+	int intentos = 0;
 
-	cout << "Digite la cantidad de procesos: " << endl;
-	cin >> cnt_proc;
-	cout << "Digite la cantidad de intentos: " << endl;
-	cin >> intentos;
+	if (mid == 0) { // Si es el proceso 0
+		cout << mid << endl;
+		cout << "Digite la cantidad de intentos: " << endl;
+		cin >> intentos;
+	}
+		
+	MPI_Bcast(&intentos, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	int rango = intentos / (cnt_proc); // lo que tiene que hacer cada proceso
 
+	for (int i = 1 ; i < rango; i++) {
+		x = ((double)rand() / (RAND_MAX + 1) + (rand() % 2) - 1.0);
+		y = ((double)rand() / (RAND_MAX + 1) + (rand() % 2) - 1.0);
+		
+		if (((x*x) + (y*y)) <= 1) {
+			aciertosLocales++;	
+		}
+	}
+
+	MPI_Reduce(&aciertosLocales, &aciertosGlobales, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	
+	if (mid == 0) {
+		resultado = 4 * (aciertosGlobales) / ((double)intentos);
+		cout << "La aproximación es: " << resultado << " con " << aciertosGlobales << " aciertos." << endl;
+	}
 
 
 	/*------------------finalización de la ejecución paralela----------------*/
@@ -54,6 +75,8 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
 
 	MPI_Finalize();
+	int shit = 0;
+	cin >> shit;
 	return 0;
 }  /* main */
 
