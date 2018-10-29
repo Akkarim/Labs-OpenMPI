@@ -41,6 +41,9 @@ int main(int argc, char* argv[]) {
 	double x = 0.0;
 	double y = 0.0;
 	double resultado = 0.0;
+	
+	double start, stop;
+
 	int intentos = 0;
 
 	if (mid == 0) { // Si es el proceso 0
@@ -48,8 +51,10 @@ int main(int argc, char* argv[]) {
 		cout << "Digite la cantidad de intentos: " << endl;
 		cin >> intentos;
 	}
-		
-	MPI_Bcast(&intentos, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	
+	start = MPI_Wtime();
+
+	MPI_Bcast(&intentos, 1, MPI_INT, 0, MPI_COMM_WORLD); // Manda cantidad de intentos a todos
 	int rango = intentos / (cnt_proc); // lo que tiene que hacer cada proceso
 
 	for (int i = 1 ; i < rango; i++) {
@@ -65,8 +70,12 @@ int main(int argc, char* argv[]) {
 	
 	if (mid == 0) {
 		resultado = 4 * (aciertosGlobales) / ((double)intentos);
+		stop = MPI_Wtime();
 		cout << "La aproximación es: " << resultado << " con " << aciertosGlobales << " aciertos." << endl;
+		cout << "Uso " << intentos << " intentos" << " y dura " << stop-start << endl;
 	}
+
+
 
 
 	/*------------------finalización de la ejecución paralela----------------*/
