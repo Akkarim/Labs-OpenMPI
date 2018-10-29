@@ -47,7 +47,6 @@ int main(int argc, char* argv[]) {
 	int intentos = 0;
 
 	if (mid == 0) { // Si es el proceso 0
-		cout << mid << endl;
 		cout << "Digite la cantidad de intentos: " << endl;
 		cin >> intentos;
 	}
@@ -67,10 +66,10 @@ int main(int argc, char* argv[]) {
 	}
 
 	MPI_Reduce(&aciertosLocales, &aciertosGlobales, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-	
+	stop = MPI_Wtime();
+
 	if (mid == 0) {
 		resultado = 4 * (aciertosGlobales) / ((double)intentos);
-		stop = MPI_Wtime();
 		cout << "La aproximación es: " << resultado << " con " << aciertosGlobales << " aciertos." << endl;
 		cout << "Uso " << intentos << " intentos" << " y dura " << stop-start << endl;
 	}
