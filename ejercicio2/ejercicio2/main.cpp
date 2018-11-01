@@ -18,7 +18,7 @@
 #include <string>
 using namespace std;
 
-#define DEBUG
+//#define DEBUG
 
 void uso(string nombre_prog);
 
@@ -89,24 +89,6 @@ int main(int argc, char* argv[]) {
 #  endif
 
 	/*--------------------------------ejecución del proceso principal------------------------------------*/
-
-	//int bin_count = 0;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
-	//int bin = 0;
-	//float min_meas, max_meas; // valor inferior de datos, valor superior de datos
-	//vector<float> bin_maxes;  // vector de m�ximos por bin
-	//vector<int> bin_counts_local;   // vector para contar valores por bin
-	//vector<int> bin_counts_global;
-	//int data_count = 0;     // cantidad de datos
-	//vector<float> data;    // vector de dato2
-
-	//if (mid == 0) {
-	//	cout << "Antes de get_args" << endl;
-	//	/* Check and get command line args */
-	//}
-	//if (argc != 5) usage(argv[0]);
-	//get_args(argv, bin_count, min_meas, max_meas, data_count);
-	/* Allocate arrays needed */
-
 	bin_maxes.resize(bin_count);
 	bin_counts_local.resize(bin_count);
 	bin_counts_global.resize(bin_count);
@@ -349,7 +331,7 @@ void print_histo(
 	for (int i = 0; i < bin_count; i++) {
 		bin_max = bin_maxes[i];
 		bin_min = (i == 0) ? min_meas : bin_maxes[i - 1];
-		printf("%.3f-%.3f:\t", bin_min, bin_max);
+		printf("%.2f-%.2f:\t", bin_min, bin_max);
 		for (int j = 0; j < bin_counts[i]; j++)
 			cout << "X";
 		cout << endl;
