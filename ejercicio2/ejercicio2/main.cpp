@@ -18,7 +18,7 @@
 #include <string>
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 
 void uso(string nombre_prog);
 
@@ -66,6 +66,17 @@ int main(int argc, char* argv[]) {
 	int cnt_proc; // cantidad de procesos
 	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
 
+	int bin_count = 0;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
+	int bin = 0;
+	float min_meas, max_meas; // valor inferior de datos, valor superior de datos
+	vector<float> bin_maxes;  // vector de m�ximos por bin
+	vector<int> bin_counts_local;   // vector para contar valores por bin
+	vector<int> bin_counts_global;
+	int data_count = 0;     // cantidad de datos
+	vector<float> data;    // vector de dato2
+
+	if (argc != 5) usage(argv[0]);
+	get_args(argv, bin_count, min_meas, max_meas, data_count);
 						   /* Arrancar ambiente MPI */
 	MPI_Init(&argc, &argv);             		/* Arranca ambiente MPI */
 	MPI_Comm_rank(MPI_COMM_WORLD, &mid); 		/* El comunicador le da valor a id (rank del proceso) */
@@ -79,35 +90,37 @@ int main(int argc, char* argv[]) {
 
 	/*--------------------------------ejecución del proceso principal------------------------------------*/
 
-	int bin_count, bin;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
-	float min_meas, max_meas; // valor inferior de datos, valor superior de datos
-	vector<float> bin_maxes;  // vector de m�ximos por bin
-	vector<int> bin_counts_local;   // vector para contar valores por bin
-	vector<int> bin_counts_global;
-	int data_count;     // cantidad de datos
-	vector<float> data;    // vector de dato2
+	//int bin_count = 0;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
+	//int bin = 0;
+	//float min_meas, max_meas; // valor inferior de datos, valor superior de datos
+	//vector<float> bin_maxes;  // vector de m�ximos por bin
+	//vector<int> bin_counts_local;   // vector para contar valores por bin
+	//vector<int> bin_counts_global;
+	//int data_count = 0;     // cantidad de datos
+	//vector<float> data;    // vector de dato2
 
-	if (mid == 0) {
-		cout << "Antes de get_args" << endl;
-		/* Check and get command line args */
-		if (argc != 5) usage(argv[0]);
-		get_args(argv, bin_count, min_meas, max_meas, data_count);
-	}
+	//if (mid == 0) {
+	//	cout << "Antes de get_args" << endl;
+	//	/* Check and get command line args */
+	//}
+	//if (argc != 5) usage(argv[0]);
+	//get_args(argv, bin_count, min_meas, max_meas, data_count);
 	/* Allocate arrays needed */
 
 	bin_maxes.resize(bin_count);
 	bin_counts_local.resize(bin_count);
-	data.resize(data_count);
+	bin_counts_global.resize(bin_count);
+	data.resize(data_count/cnt_proc);
 
 	/* Generate the data */
-	gen_data(min_meas, max_meas, cnt_proc, data, data_count);
+	gen_data(min_meas, max_meas, cnt_proc, data, data_count/cnt_proc);
 
 	/* Create bins for storing counts */
 	gen_bins(min_meas, max_meas, bin_maxes, bin_counts_local, bin_count);
 
 
 	/* Count number of values in each bin */
-	for (int i = 0; i < data_count; i++) {
+	for (int i = 0; i < data_count/cnt_proc; i++) {
 		bin = which_bin(data[i], bin_maxes, bin_count, min_meas);
 		bin_counts_local[bin]++;
 	}
@@ -117,7 +130,7 @@ int main(int argc, char* argv[]) {
 #  ifdef DEBUG
 	cout << "bin_counts = ";
 	for (int i = 0; i < bin_count; i++)
-		cout << " " << bin_counts[i];
+		cout << " " << bin_counts_local[i];
 	cout << endl;
 #  endif
 
@@ -235,7 +248,7 @@ void gen_data(
 #  ifdef DEBUG
 	cout << "data = ";
 	for (int i = 0; i < data_count; i++)
-		cout << " ", data[i]);
+		cout << " ", data[i];
 		cout << endl;
 #  endif
 }  /* gen_data */
@@ -267,9 +280,9 @@ void gen_bins(
 
 #  ifdef DEBUG
 	cout << "bin_maxes = ";
-	for (i = 0; i < bin_count; i++)
-		cout << " " << bin_maxes[i]);
-		cout << endl);
+	for (int i = 0; i < bin_count; i++)
+		cout << " " << bin_maxes[i];
+		cout << endl;
 #  endif
 }  /* gen_bins */
 
