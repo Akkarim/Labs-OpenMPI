@@ -107,14 +107,12 @@ int main(int argc, char* argv[]) {
 
 
 	/* Count number of values in each bin */
-//#  pragma omp parallel for num_threads(tCount) private(bin)//***********************************************
 	for (int i = 0; i < data_count; i++) {
 		bin = which_bin(data[i], bin_maxes, bin_count, min_meas);
-
 		bin_counts_local[bin]++;
 	}
 
-	MPI_Reduce(&bin_counts_local, &bin_counts_global, 1, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(bin_counts_local.data(), bin_counts_global.data(), bin_count, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
 
 #  ifdef DEBUG
 	cout << "bin_counts = ";
@@ -129,8 +127,11 @@ int main(int argc, char* argv[]) {
 		print_histo(bin_maxes, bin_counts_global, bin_count, min_meas);
 
 	/*-----------------------------------finalización de la ejecución paralela-----------------------------*/
-	if (mid == 0)
+	if (mid == 0) {
+		int x = 0;
+		cin >> x;
 		cin.ignore();
+	}
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
 
 
@@ -228,7 +229,6 @@ void gen_data(
 	int     data_count  /* in  */) {
 
 	srand(0);
-//#  pragma omp parallel for num_threads(tCount)//**********************************************************
 	for (int i = 0; i < data_count; i++)//Debería ir un menos uno, en caso de fallo, ese es un caso probable//OVEJAS_LANUDAS
 		data[i] = min_meas + (max_meas - min_meas)*rand() / ((double)RAND_MAX);
 
