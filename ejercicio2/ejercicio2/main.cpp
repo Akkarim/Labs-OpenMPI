@@ -1,40 +1,30 @@
-﻿/* File:      histogram.c
-* Purpose:   Build a histogram from some random data
+﻿/* Archivo:      mpi_plantilla.cpp
+* Propósito:   ....
 *
-* Compile:   gcc -g -Wall -o histogram histogram.c
-* Run:       ./histogram <bin_count> <min_meas> <max_meas> <data_count>
+* Compilación:   mpicxx -g -Wall -o mpi_plantilla mpi_plantilla.cpp
+* Ejecución:     mpiexec -n <num_proc> ./mpi_plantilla <secuencia de valores de parámetros>
 *
-* Input:     None
-* Output:    A histogram with X's showing the number of measurements
-*            in each bin
+* Entradas:     ...
+* Salidas:    ...
 *
-* Notes:
-* 1.  Actual measurements y are in the range min_meas <= y < max_meas
-* 2.  bin_counts[i] stores the number of measurements x in the range
-* 3.  bin_maxes[i-1] <= x < bin_maxes[i] (bin_maxes[-1] = min_meas)
-* 4.  DEBUG compile flag gives verbose output
-* 5.  The program will terminate if either the number of command line
-*     arguments is incorrect or if the search for a bin for a
-*     measurement fails.
+* Notas:
+* 1.  bandera DEBUG produce salida detallada para depuración.
 *
-* IPP:  Section 2.7.1 (pp. 66 and ff.)
 */
 
-#include <stdlib.h>
+#include <mpi.h> 
 #include <iostream>
 #include <vector>
 #include <string>
-#include <omp.h>
-#include <math.h>
-#include <random>
-//#include <yourself>
-//#include <love>
-//#include <drugs>
-#include <time.h>
-
 using namespace std;
 
-//#define DEBUG = 1
+//#define DEBUG
+
+void uso(string nombre_prog);
+
+void obt_args(
+	char*    argv[]        /* in  */,
+	int&     dato_salida  /* out */);
 
 void usage(string prog_name);
 
@@ -71,55 +61,60 @@ void print_histo(
 	int      bin_count     /* in */,
 	float    min_meas      /* in */);
 
+int main(int argc, char* argv[]) {
+	int mid; // id de cada proceso
+	int cnt_proc; // cantidad de procesos
+	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
 
+						   /* Arrancar ambiente MPI */
+	MPI_Init(&argc, &argv);             		/* Arranca ambiente MPI */
+	MPI_Comm_rank(MPI_COMM_WORLD, &mid); 		/* El comunicador le da valor a id (rank del proceso) */
+	MPI_Comm_size(MPI_COMM_WORLD, &cnt_proc);  /* El comunicador le da valor a p (número de procesos) */
 
-int main(int argc, char* argv[]) { //********************************************************
-	int bin_count, bin, tCount;    // cantidad de bins, bin actual, bin == rango
+#  ifdef DEBUG 
+	if (mid == 0)
+		cin.ignore();
+	MPI_Barrier(MPI_COMM_WORLD);
+#  endif
+
+	/*--------------------------------ejecución del proceso principal------------------------------------*/
+
+	int bin_count, bin;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
 	float min_meas, max_meas; // valor inferior de datos, valor superior de datos
 	vector<float> bin_maxes;  // vector de m�ximos por bin
-	vector<int> bin_counts;   // vector para contar valores por bin
+	vector<int> bin_counts_local;   // vector para contar valores por bin
+	vector<int> bin_counts_global;
 	int data_count;     // cantidad de datos
-	vector<float> data;    // vector de datos
-						   /*
-						   double omp_get_wtime();
-						   double start;
-						   double end;
-						   */
-						   /*¡¡¡¡¡¡¡¡¡Nuestro Código!!!!!!!!!!!*/
+	vector<float> data;    // vector de dato2
 
-						   //cout << "Indique el numero de hilos: " << endl;
-						   //cin >> tCount;
-
-	cout << "Antes de get_args" << endl;
-
-	/* Get the number of threats*/
-	cout << "Indique el numero de hilos: " << endl;
-	cin >> tCount;
-
-	/* Check and get command line args */
-	clock_t start = clock();
-	if (argc != 5) usage(argv[0]);
-	get_args(argv, bin_count, min_meas, max_meas, data_count);
-
-
+	if (mid == 0) {
+		cout << "Antes de get_args" << endl;
+		/* Check and get command line args */
+		if (argc != 5) usage(argv[0]);
+		get_args(argv, bin_count, min_meas, max_meas, data_count);
+	}
 	/* Allocate arrays needed */
 
 	bin_maxes.resize(bin_count);
-	bin_counts.resize(bin_count);
+	bin_counts_local.resize(bin_count);
 	data.resize(data_count);
 
 	/* Generate the data */
-	gen_data(min_meas, max_meas, tCount, data, data_count);
+	gen_data(min_meas, max_meas, cnt_proc, data, data_count);
 
 	/* Create bins for storing counts */
-	gen_bins(min_meas, max_meas, bin_maxes, bin_counts, bin_count);
+	gen_bins(min_meas, max_meas, bin_maxes, bin_counts_local, bin_count);
+
 
 	/* Count number of values in each bin */
-#  pragma omp parallel for num_threads(tCount) private(bin)
+//#  pragma omp parallel for num_threads(tCount) private(bin)//***********************************************
 	for (int i = 0; i < data_count; i++) {
 		bin = which_bin(data[i], bin_maxes, bin_count, min_meas);
-		bin_counts[bin]++;
+
+		bin_counts_local[bin]++;
 	}
+
+	MPI_Reduce(&bin_counts_local, &bin_counts_global, 1, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
 
 #  ifdef DEBUG
 	cout << "bin_counts = ";
@@ -128,19 +123,54 @@ int main(int argc, char* argv[]) { //*******************************************
 	cout << endl;
 #  endif
 
-	clock_t stop = clock();
-	float secs = ((float)(stop - start) / CLOCKS_PER_SEC);
-	cout << "Secuencialmente duro(con tilde): " << secs << endl;
-
 	/* Print the histogram */
 	cout << endl << endl;
-	print_histo(bin_maxes, bin_counts, bin_count, min_meas);
+	if (mid == 0)
+		print_histo(bin_maxes, bin_counts_global, bin_count, min_meas);
+
+	/*-----------------------------------finalización de la ejecución paralela-----------------------------*/
+	if (mid == 0)
+		cin.ignore();
+	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
 
 
-	cin >> bin;
+	MPI_Finalize();
+
 	return 0;
-}  /* main ********************************************************************************/
+}  /* main */
 
+   /*---------------------------------------------------------------------
+   * REQ: N/A
+   * MOD: N/A
+   * EFE: despliega mensaje indicando cómo ejecutar el programa y pasarle parámetros de entrada.
+   * ENTRAN:
+   *		nombre_prog:  nombre del programa
+   * SALEN: N/A
+   */
+void uso(string nombre_prog /* in */) {
+	cerr << nombre_prog.c_str() << " secuencia de parámetros de entrada" << endl;
+	exit(0);
+}  /* uso */
+
+   /*---------------------------------------------------------------------
+   * REQ: N/A
+   * MOD: dato_salida
+   * EFE: obtiene los valores de los argumentos pasados por "línea de comandos".
+   * ENTRAN:
+   *		nombre_prog:  nombre del programa
+   * SALEN:
+   *		dato_salida: un dato de salida con un valor de argumento pasado por "línea de comandos".
+   */
+void obt_args(
+	char*    argv[]        /* in  */,
+	int&     dato_salida  /* out */) {
+
+	dato_salida = strtol(argv[1], NULL, 10); // se obtiene valor del argumento 1 pasado por "línea de comandos".
+
+#  ifdef DEBUG
+	cout << "dato_salida = " << dato_salida << endl;
+#  endif
+}  /* obt_args */
 
    /*---------------------------------------------------------------------
    * Function:  usage
@@ -198,7 +228,7 @@ void gen_data(
 	int     data_count  /* in  */) {
 
 	srand(0);
-#  pragma omp parallel for num_threads(tCount)
+//#  pragma omp parallel for num_threads(tCount)//**********************************************************
 	for (int i = 0; i < data_count; i++)//Debería ir un menos uno, en caso de fallo, ese es un caso probable//OVEJAS_LANUDAS
 		data[i] = min_meas + (max_meas - min_meas)*rand() / ((double)RAND_MAX);
 
@@ -278,7 +308,7 @@ int which_bin(
 		else if (data < bin_min)
 			top = mid - 1;
 		else
-			return mid;
+			return mid; // Puede haber dualidad de nombre
 	}
 
 	/* Whoops! */
@@ -292,7 +322,7 @@ int which_bin(
    * Purpose:   Print a histogram.  The number of elements in each
    *            bin is shown by an array of X's.
    * In args:   bin_maxes:   the max value for each bin
-   *            bin_counts:  the number of elements in each bin
+   *            bin_counts:  the number of elements in each bin//*******************************************
    *            bin_count:   the number of bins
    *            min_meas:    the minimum possible measurment
    */
@@ -313,3 +343,13 @@ void print_histo(
 	}
 
 }  /* print_histo */
+
+   //End of file with a Cow (Bettsy)
+   //                               __.----.___
+   //   ||            ||  (\(__)/)-'||      ;--` ||
+   //  _||____________||___`(QQ)'___||______;____||_
+   //  -||------------||----)  (----||-----------||-
+   //  _||____________||___(o  o)___||______;____||_
+   //  -||------------||----`--'----||-----------||-
+   //   ||            ||       `|| ||| || ||     ||
+   //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
