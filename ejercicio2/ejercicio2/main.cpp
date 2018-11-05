@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 	int mid; // id de cada proceso
 	int cnt_proc; // cantidad de procesos
 	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
-
+	double start, stop;
 	int bin_count = 0;    // cantidad de bins, bin actual, bin == rango quitamos el tCount
 	int bin = 0;
 	float min_meas, max_meas; // valor inferior de datos, valor superior de datos
@@ -75,12 +75,14 @@ int main(int argc, char* argv[]) {
 	int data_count = 0;     // cantidad de datos
 	vector<float> data;    // vector de dato2
 
-	if (argc != 5) usage(argv[0]);
-	get_args(argv, bin_count, min_meas, max_meas, data_count);
 						   /* Arrancar ambiente MPI */
 	MPI_Init(&argc, &argv);             		/* Arranca ambiente MPI */
 	MPI_Comm_rank(MPI_COMM_WORLD, &mid); 		/* El comunicador le da valor a id (rank del proceso) */
 	MPI_Comm_size(MPI_COMM_WORLD, &cnt_proc);  /* El comunicador le da valor a p (número de procesos) */
+
+	if (argc != 5) usage(argv[0]);
+	get_args(argv, bin_count, min_meas, max_meas, data_count);
+
 
 #  ifdef DEBUG 
 	if (mid == 0)
@@ -93,7 +95,7 @@ int main(int argc, char* argv[]) {
 	bin_counts_local.resize(bin_count);
 	bin_counts_global.resize(bin_count);
 	data.resize(data_count/cnt_proc);
-
+	start = MPI_Wtime();
 	/* Generate the data */
 	gen_data(min_meas, max_meas, cnt_proc, data, data_count/cnt_proc);
 
@@ -108,7 +110,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	MPI_Reduce(bin_counts_local.data(), bin_counts_global.data(), bin_count, MPI_INT,MPI_SUM, 0, MPI_COMM_WORLD);
-
+	stop = MPI_Wtime();
 #  ifdef DEBUG
 	cout << "bin_counts = ";
 	for (int i = 0; i < bin_count; i++)
@@ -118,9 +120,10 @@ int main(int argc, char* argv[]) {
 
 	/* Print the histogram */
 	cout << endl << endl;
-	if (mid == 0)
+	if (mid == 0) {
 		print_histo(bin_maxes, bin_counts_global, bin_count, min_meas);
-
+		cout <<"Dura " << stop - start << endl;
+	}
 	/*-----------------------------------finalización de la ejecución paralela-----------------------------*/
 	if (mid == 0) {
 		int x = 0;
