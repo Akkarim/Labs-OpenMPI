@@ -43,7 +43,6 @@ int main(int argc, char* argv[]) {
 				vPrime.push_back(i);
 			}
 		}
-		cout << "El tamaño de vector es: " << vPrime.size();
 		c = vPrime.size();
 	}
 	
@@ -57,14 +56,22 @@ int main(int argc, char* argv[]) {
 	
 	MPI_Bcast(&vPrime[0], c, MPI_INT, 0, MPI_COMM_WORLD);
 	
-
-	if (mid == 1){
-		cout << "El tamaño de vector es: " << vPrime.size()<<endl;
-		cout << "estoy en el proc 2: " << vPrime[2] << endl;
-	}
 	int local_n = n / cnt_proc;
 	int difencia = 0;
 
+	int a, b, c, x, y, z; // para la suma
+	if (mid == 0) {
+		for (int i = 6; i < local_n; i++) {
+			a = b = c = 2;
+			x = y = z = 0;
+			while ((a + b + c < i) && (a + b < i)) {
+				while ((a + b + c < i) && (a + b < i)) {
+
+				}
+			}
+
+		}
+	}
 
 	/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
 	if (mid == 0)
