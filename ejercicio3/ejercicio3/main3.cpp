@@ -13,7 +13,7 @@ void obt_args(
 	int&     dato_salida  /* out */);
 
 bool esPrimo(int n);
-const int n = 100;
+
 int main(int argc, char* argv[]) {
 	int mid; // id de cada proceso
 	int cnt_proc; // cantidad de procesos
@@ -31,34 +31,42 @@ int main(int argc, char* argv[]) {
 #  endif
 
 	/*-------------------------------------------ejecución del proceso principal--------------------------------------------*/
-	vector<int> primos;
-	int n = 0;
+	int primos[100000];
+	vector<int> vPrime;
+	int j = 0, c = 0, n = 0;
 	if (mid == 0) {
 		cout << "Ingrese el rango superior(>5): " << endl;
 		cin >> n;
+		vPrime.reserve(n);
+		for (int i = 3; i <= n ; i+=2) {
+			if (esPrimo(i)) {
+				vPrime.push_back(i);
+			}
+		}
+		cout << "El tamaño de vector es: " << vPrime.size();
+		c = vPrime.size();
+	}
+	
+	MPI_Bcast(&c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	if (mid!=0) {
+		vPrime.resize(c);
 	}
 
-	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+			
+	
+	MPI_Bcast(&vPrime[0], c, MPI_INT, 0, MPI_COMM_WORLD);
+	
 
-	for (int i = 0; i <= (n/cnt_proc)*mid; i++) { // ver bien la cuestión 
-		if (esPrimo(i))
-			primos.push_back(i);
+	if (mid == 1){
+		cout << "El tamaño de vector es: " << vPrime.size()<<endl;
+		cout << "estoy en el proc 2: " << vPrime[2] << endl;
 	}
 	int local_n = n / cnt_proc;
 	int difencia = 0;
-	for (int actual = 5; primos[actual] < local_n/2; actual++) {
-		difencia = n - primos[actual];
-		if (!esPrimo(actual)) {
-			for (int actual = 5; primos[actual] < local_n / 2; actual++) {
-			
-			}
-		}
-		else {
-			if (binary_search(primos.begin(), primos.end(), difencia)) {
-				cout << primos[actual] << " + " << difencia << " = " << n << endl;
-			}
-		}
-	/*-------------------------------------------finalización de la ejecución paralela-------------------------------------*/
+
+
+	/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
 	if (mid == 0)
 		cin.ignore();
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
