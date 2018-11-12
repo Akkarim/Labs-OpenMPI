@@ -56,31 +56,110 @@ int main(int argc, char* argv[]) {
 	
 	MPI_Bcast(&vPrime[0], c, MPI_INT, 0, MPI_COMM_WORLD);
 	
-	int local_n = n / cnt_proc;
-	int difencia = 0;
+	//int local_n = n / cnt_proc;
+	int local_n = n-5 / cnt_proc;
 
-	int a, b, c, x, y, z; // para la suma
+	int a, b, x, y, z; // para la suma
 	if (mid == 0) {
 		for (int i = 6; i < local_n; i++) {
 			a = b = c = 2;
 			x = y = z = 0;
-			while ((a + b + c < i) && (a + b < i)) {
-				while ((a + b + c < i) && (a + b < i)) {
-
+			if (i % 2 == 0) { // si es par
+				while (a + b != i) {
+					a = vPrime[x];
+					x++;
+					if (a + b > i) {
+						b = vPrime[y];
+						y++;
+						x = 0; // Greeeeeeeeeeedy
+						a = 2;
+					}
+				}
+				cout << i << " = " << a << " + " << b << endl;
+			}
+			else { // Si es impar
+				while (a + b + c != i) {
+					c = vPrime[z];
+					z++;
+					if (a + b + c > i) { //vamoh a tocar b
+						b = vPrime[y];
+						y++;
+						if (b >= i) { // si llegamos al "top"
+							a = vPrime[x];
+							x++;
+							y = 0;
+							b = 2;
+							z = 0;
+							c = 2;
+						}
+						else {
+							z = 0;
+							c = 2;
+						}
+					}
+				}
+				cout << i << " = " << a << " + " << b << " + "  << c << endl;
+			}
+		}
+	}
+	else {
+		for (int i = (local_n*mid) + 1; i < (local_n+1)*mid+1; i++) {
+			for (int i = 6; i < local_n; i++) {
+				a = b = c = 2;
+				x = y = z = 0;
+				if (i % 2 == 0) { // si es par
+					while (a + b != i) {
+						a = vPrime[x];
+						x++;
+						if (a + b > i) {
+							b = vPrime[y];
+							y++;
+							x = 0; // Greeeeeeeeeeedy
+							a = 2;
+						}
+					}
+					cout << i << " = " << a << " + " << b << endl;
+				}
+				else { // Si es impar
+					while (a + b + c != i) {
+						c = vPrime[z];
+						z++;
+						if (a + b + c > i) { //vamoh a tocar b
+							b = vPrime[y];
+							y++;
+							if (b >= i) { // si llegamos al "top"
+								a = vPrime[x];
+								x++;
+								y = 0;
+								b = 2;
+								z = 0;
+								c = 2;
+							}
+							else {
+								z = 0;
+								c = 2;
+							}
+						}
+					}
+					cout << i << " = " << a << " + " << b << " + " << c << endl;
 				}
 			}
-
 		}
+
 	}
 
 	/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
-	if (mid == 0)
+	if (mid == 0) {
 		cin.ignore();
+		int felipe = 15;
+
+		cout << "Ya terminé we " << felipe/4 << endl;
+	}
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
 
 	MPI_Finalize();
-	int x = 0;
-	cin >> x;
+	int chit = 0;
+	cin >> chit;
 	return 0;
 }  /* main */
 
