@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 	int mid; // id de cada proceso
 	int cnt_proc; // cantidad de procesos
 	MPI_Status mpi_status; // para capturar estado al finalizar invocación de funciones MPI
-
+	double start, stop;
 						   /* Arrancar ambiente MPI */
 	MPI_Init(&argc, &argv);             		/* Arranca ambiente MPI */
 	MPI_Comm_rank(MPI_COMM_WORLD, &mid); 		/* El comunicador le da valor a id (rank del proceso) */
@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
 		cout << "Ingrese el rango superior(>5 && n divisible entre cantidad de procesos): " << endl;
 		cin >> n;
 		vPrime.reserve(n);
+		start = MPI_Wtime();
 		for (int i = 3; i <= n ; i+=2) {
 			if (esPrimo(i)) {
 				vPrime.push_back(i);
@@ -63,9 +64,16 @@ int main(int argc, char* argv[]) {
 			x = y = z = 0;
 			if (i % 2 == 0) { // si es par
 				while (a + b != i) {
-
-					a = vPrime[x];
-					x++;
+					if (x < vPrime.size()) {
+						a = vPrime[x];
+						x++;
+					}
+					else {
+						b = vPrime[y];
+						y++;
+						x = 0; // Greeeeeeeeeeedy
+						a = 2;
+					}
 					if (a + b > i ) {
 						b = vPrime[y];
 						y++;
@@ -77,21 +85,39 @@ int main(int argc, char* argv[]) {
 			}
 			else { // Si es impar
 				while (a + b + c != i) {
-					c = vPrime[z];
-					z++;
-					if (a + b + c > i) { //vamoh a tocar b
+					if (c < vPrime.size()) {
+						c = vPrime[z];
+						z++;
+					}
+					else {
 						b = vPrime[y];
 						y++;
-						if (b >= i) { // si llegamos al "top"
+						z = 0;
+						c = 2;
+					}
+					if (a + b + c > i) { //vamoh a tocar b
+						if (y < vPrime.size()) {
+							b = vPrime[y];
+							y++;
+							if (b >= i) { // si llegamos al "top"
+								a = vPrime[x];
+								x++;
+								y = 0;// Greeeeeeeeeeedy
+								b = 2;
+								z = 0;// Greeeeeeeeeeedy
+								c = 2;
+							}
+							else {
+								z = 0;
+								c = 2;
+							}
+						}
+						else {
 							a = vPrime[x];
 							x++;
 							y = 0;// Greeeeeeeeeeedy
 							b = 2;
 							z = 0;// Greeeeeeeeeeedy
-							c = 2;
-						}
-						else {
-							z = 0;
 							c = 2;
 						}
 					}
@@ -106,8 +132,16 @@ int main(int argc, char* argv[]) {
 			x = y = z = 0;
 			if (i % 2 == 0) { // si es par
 				while (a + b != i) {
-					a = vPrime[x];
-					x++;
+					if (x < vPrime.size()) {
+						a = vPrime[x];
+						x++;
+					}
+					else {
+						b = vPrime[y];
+						y++;
+						x = 0; // Greeeeeeeeeeedy
+						a = 2;
+					}
 					if (a + b > i) {
 						b = vPrime[y];
 						y++;
@@ -119,25 +153,39 @@ int main(int argc, char* argv[]) {
 			}
 			else { // Si es impar
 				while (a + b + c != i) {
-					c = vPrime[z];
-					z++;
-					if (i == 34)
-						j = 1;
-					if (a + b + c > i) { //vamoh a tocar b
+					if (c < vPrime.size()) {
+						c = vPrime[z];
+						z++;
+					}
+					else {
 						b = vPrime[y];
 						y++;
-						if (b >= i) { // si llegamos al "top"
+						z = 0;
+						c = 2;
+					}
+					if (a + b + c > i) { //vamoh a tocar b
+						if (y < vPrime.size()) {
+							b = vPrime[y];
+							y++;
+							if (b >= i) { // si llegamos al "top"
+								a = vPrime[x];
+								x++;
+								y = 0;// Greeeeeeeeeeedy
+								b = 2;
+								z = 0;// Greeeeeeeeeeedy
+								c = 2;
+							}
+							else {
+								z = 0;
+								c = 2;
+							}
+						}
+						else {
 							a = vPrime[x];
 							x++;
 							y = 0;// Greeeeeeeeeeedy
 							b = 2;
 							z = 0;// Greeeeeeeeeeedy
-							c = 2;
-							if (i == 991)
-								j = 1;
-						}
-						else {
-							z = 0;
 							c = 2;
 						}
 					}
@@ -146,7 +194,8 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-
+	stop = MPI_Wtime();
+	cout << "Dura " << stop - start << endl;
 		/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
 	if (mid == 0) {
 		cin.ignore();
