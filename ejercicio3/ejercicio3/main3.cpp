@@ -4,7 +4,7 @@
 #include <algorithm>
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 
 void uso(string nombre_prog);
 
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 	vector<int> vPrime;
 	int j = 0, c = 0, n = 0;
 	if (mid == 0) {
-		cout << "Ingrese el rango superior(>5): " << endl;
+		cout << "Ingrese el rango superior(>5 && n divisible entre cantidad de procesos): " << endl;
 		cin >> n;
 		vPrime.reserve(n);
 		for (int i = 3; i <= n ; i+=2) {
@@ -45,23 +45,63 @@ int main(int argc, char* argv[]) {
 		}
 		c = vPrime.size();
 	}
-	
+
 	MPI_Bcast(&c, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if (mid!=0) {
 		vPrime.resize(c);
 	}
 
-			
-	
 	MPI_Bcast(&vPrime[0], c, MPI_INT, 0, MPI_COMM_WORLD);
-	
-	//int local_n = n / cnt_proc;
-	int local_n = n-5 / cnt_proc;
-
+	int local_n = (n-5) / cnt_proc;
 	int a, b, x, y, z; // para la suma
+	
 	if (mid == 0) {
-		for (int i = 6; i < local_n; i++) {
+		for (int i = 6; i < local_n+6; i++) {
+			a = b = c = 2;
+			x = y = z = 0;
+			if (i % 2 == 0) { // si es par
+				while (a + b != i) {
+
+					a = vPrime[x];
+					x++;
+					if (a + b > i ) {
+						b = vPrime[y];
+						y++;
+						x = 0; // Greeeeeeeeeeedy
+						a = 2;
+					}
+				}
+				cout << i << " = " << a << " + " << b << " Hecho por proceso: " << mid << endl;
+			}
+			else { // Si es impar
+				while (a + b + c != i) {
+					c = vPrime[z];
+					z++;
+					if (a + b + c > i) { //vamoh a tocar b
+						b = vPrime[y];
+						y++;
+						if (b >= i) { // si llegamos al "top"
+							a = vPrime[x];
+							x++;
+							y = 0;// Greeeeeeeeeeedy
+							b = 2;
+							z = 0;// Greeeeeeeeeeedy
+							c = 2;
+						}
+						else {
+							z = 0;
+							c = 2;
+						}
+					}
+				}
+				cout << i << " = " << a << " + " << b << " + "  << c << " Hecho por proceso: "<< mid << endl;
+			}
+		}
+	}
+	if (mid != 0) {
+		for (int i = 6 + (local_n*mid); i < (6 + (local_n*mid) + local_n); i++) {
 			a = b = c = 2;
 			x = y = z = 0;
 			if (i % 2 == 0) { // si es par
@@ -75,22 +115,26 @@ int main(int argc, char* argv[]) {
 						a = 2;
 					}
 				}
-				cout << i << " = " << a << " + " << b << endl;
+				cout << i << " = " << a << " + " << b << " Hecho por proceso: " << mid << endl;
 			}
 			else { // Si es impar
 				while (a + b + c != i) {
 					c = vPrime[z];
 					z++;
+					if (i == 34)
+						j = 1;
 					if (a + b + c > i) { //vamoh a tocar b
 						b = vPrime[y];
 						y++;
 						if (b >= i) { // si llegamos al "top"
 							a = vPrime[x];
 							x++;
-							y = 0;
+							y = 0;// Greeeeeeeeeeedy
 							b = 2;
-							z = 0;
+							z = 0;// Greeeeeeeeeeedy
 							c = 2;
+							if (i == 991)
+								j = 1;
 						}
 						else {
 							z = 0;
@@ -98,62 +142,14 @@ int main(int argc, char* argv[]) {
 						}
 					}
 				}
-				cout << i << " = " << a << " + " << b << " + "  << c << endl;
+				cout << i << " = " << a << " + " << b << " + " << c << " Hecho por proceso: " << mid << endl;
 			}
 		}
 	}
-	else {
-		for (int i = (local_n*mid) + 1; i < (local_n+1)*mid+1; i++) {
-			for (int i = 6; i < local_n; i++) {
-				a = b = c = 2;
-				x = y = z = 0;
-				if (i % 2 == 0) { // si es par
-					while (a + b != i) {
-						a = vPrime[x];
-						x++;
-						if (a + b > i) {
-							b = vPrime[y];
-							y++;
-							x = 0; // Greeeeeeeeeeedy
-							a = 2;
-						}
-					}
-					cout << i << " = " << a << " + " << b << endl;
-				}
-				else { // Si es impar
-					while (a + b + c != i) {
-						c = vPrime[z];
-						z++;
-						if (a + b + c > i) { //vamoh a tocar b
-							b = vPrime[y];
-							y++;
-							if (b >= i) { // si llegamos al "top"
-								a = vPrime[x];
-								x++;
-								y = 0;
-								b = 2;
-								z = 0;
-								c = 2;
-							}
-							else {
-								z = 0;
-								c = 2;
-							}
-						}
-					}
-					cout << i << " = " << a << " + " << b << " + " << c << endl;
-				}
-			}
-		}
 
-	}
-
-	/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
+		/*-------------------------------------------finalización de la ejecución paralela---------------------------------------*/
 	if (mid == 0) {
 		cin.ignore();
-		int felipe = 15;
-
-		cout << "Ya terminé we " << felipe/4 << endl;
 	}
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
 
