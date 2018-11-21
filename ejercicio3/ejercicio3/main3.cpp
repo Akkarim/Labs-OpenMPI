@@ -32,14 +32,13 @@ int main(int argc, char* argv[]) {
 
 	/*-------------------------------------------ejecución del proceso principal--------------------------------------------*/
 	int primos[100000];
-	vector<int> vPrime;
-	vector<pair<pair<int,int>,pair<int,int>>> resultados; 
-	vector<pair<pair<int,int>,pair<int,int>>> local_resultados; 
+	vector<bool> vPrime;
 	int j = 0, c = 0, n = 0;
-	if(mid==0){
+	/*if(mid==0){
 		cout << "Ingrese el rango superior(>5 && n divisible entre cantidad de procesos): " << endl;
 		cin >> n;
-	}
+	}*/
+	n = strtol(argv[1], NULL, 10); 
 
 	/****Empeza a calcular WallTime****/
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -47,7 +46,7 @@ int main(int argc, char* argv[]) {
 	/*********************************/
 
 	if (mid == 0) {
-		vPrime.push_back(2);
+		vPrime[2] = true;
 		for (int i = 3; i < n ; i+=2) {
 			if (esPrimo(i)) {
 				vPrime.push_back(i);
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]) {
 		for (int i = 6; i < local_n+6; i++) {
 			//a = b = c = 2;
 			//x = y = z = 0;
-			if (i % 2 == 0) { // si es par
+			if (i & ((1 << 1) - 1) == 0) { // si es par
 				x=0;
 				y=vPrime.size();
 				a=2;
@@ -103,8 +102,8 @@ int main(int argc, char* argv[]) {
 					}
 					*/
 				}
-				local_resultados.push_back(((i,a),(b,0)));
-				//cout << i << " = " << a << " + " << b << " Hecho por proceso: " << mid << endl;
+				//local_resultados.push_back(((i,a),(b,0)));
+				cout << i << " = " << a << " + " << b << " Hecho por proceso: " << mid << endl;
 			}
 			else { // Si es impar
 				x=0;
@@ -224,7 +223,7 @@ int main(int argc, char* argv[]) {
 
 	local_finish = MPI_Wtime();
 	local_elapsed = local_finish − local_start;
-	MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+	MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 	if (mid == 0)
 		cout << "Tiempo transcurrido = " << elapsed << endl;
 
