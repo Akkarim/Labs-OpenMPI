@@ -1,19 +1,12 @@
-/* Archivo:      mpi_plantilla.cpp
-* Propósito:   ....
-*
-* Compilación:   mpicxx -g -Wall -o mpi_plantilla mpi_plantilla.cpp
-* Ejecución:     mpiexec -n <num_proc> ./mpi_plantilla <secuencia de valores de parámetros>
-*
-* Entradas:     ...
-* Salidas:    ...
-*
-* Notas:
-* 1.  bandera DEBUG produce salida detallada para depuración.
-*
-*/
-
 #include <mpi.h> 
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
+#include <vector>
+#include <cmath>
+#include <random>
+#include <math.h>
+#include <algorithm>
 using namespace std;
 
 //#define DEBUG
@@ -40,9 +33,76 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 #  endif
 
-	/* ejecución del proceso principal */
+	/*-----------------------------------------ejecución del proceso principal-----------------------------------------*/
+	int cnt_proc_local = 0, local_n = 0, n = 0, max = 0, random = 0;
+	double tStart =  0.0, tStop = 0.0, local_elapsed = 0.0, elapsed = 0.0;
+	int* arrLocal; // Arreglo para cada proceso
+	int* arrFinal; //Donde queda todo, se imprime
+	int* arrAux; // Arreglo para cambios
 
-	/* finalización de la ejecución paralela */
+	if (mid == 0) {
+		cout << "Ingrese la cantidad de números: " << endl;
+		cin >> n;
+	}
+	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	cnt_proc_local = cnt_proc; //cnt_proc_local = cnt_proc_act, cnt_proc = cnt_proc_org
+	local_n = (n/cnt_proc_local);
+	arrLocal = (int*)malloc(n * sizeof(int));
+	arrFinal = (int*)malloc(n * sizeof(int));
+	arrAux = (int*)malloc(n * sizeof(int));
+	/*Random*/
+	tStart = MPI_Wtime();
+	if (mid == 0) {
+		for (int i = 0; i < n; i++) {
+			random = rand() % n; // random común de c++
+			arrFinal[i] = random;
+		}
+	}
+	MPI_Scatter(arrFinal, local_n, MPI_INT, arrLocal, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+	
+	sort(arrLocal, arrLocal + local_n);
+	max = cnt_proc_local;
+
+	
+	while (cnt_proc_local > 1) {
+		cnt_proc_local /= 2;
+		if (mid >= cnt_proc_local && mid < max) {
+			MPI_Send(arrLocal, local_n, MPI_INT, mid - cnt_proc_local, 0, MPI_COMM_WORLD);
+		}
+		if (mid < cnt_proc_local) {
+			MPI_Recv(arrAux, local_n, MPI_INT, mid + cnt_proc_local, 0, MPI_COMM_WORLD, MPI_STATUSES_IGNORE); //puede faltar MPI_STATUSES_IGNORE 
+			merge(arrLocal, arrLocal + local_n, arrAux, arrAux + local_n, arrFinal);
+			local_n *= 2;
+			arrLocal = &arrFinal[0];
+		}
+		max /= 2;
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
+	tStop = MPI_Wtime();
+	local_elapsed = tStop - tStart; 
+	MPI_Reduce(&local_elapsed, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+	if (mid == 0) {
+		cout << "Tiempo transcurrido = " << elapsed << endl;
+	}
+	if (mid == 0 && cnt_proc_local > 1) {
+		for (int i = 0; i < n; i++) {
+			cout << arrFinal[i] << ",";
+		}
+	}
+	else if (mid == 0 && cnt_proc_local == 1) {
+		for (int i = 0; i < n; i++) {
+			cout << arrLocal[i] << ",";
+		}
+	}
+
+	free(arrFinal);
+	free(arrAux);
+
+
+	/*--------------------------------------finalización de la ejecución paralela-------------------------------------*/
+	int e;
+	cin >> e;
 	if (mid == 0)
 		cin.ignore();
 	MPI_Barrier(MPI_COMM_WORLD); // para sincronizar la finalización de los procesos
@@ -84,117 +144,16 @@ void obt_args(
 #  endif
 }  /* obt_args */
 
+   //End of file with a Cow (Bettsy)
+   //                               __.----.___
+   //   ||            ||  (\(__)/)-'||      ;--` ||
+   //  _||____________||___`(QQ)'___||______;____||_
+   //  -||------------||----)  (----||-----------||-
+   //  _||____________||___(o  o)___||______;____||_
+   //  -||------------||----`--'----||-----------||-
+   //   ||            ||       `|| ||| || ||     ||(L)FD
+   //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
 
-
-
-
-
-
-
-
-/*#include <stdlib.h>
-#include <iostream>
-#include <vector>
-#include <string>
-#include <omp.h>
-#include <math.h>
-#include <random>
-#include <algorithm>
-//#include <yourself>
-//#include <love>
-#include <time.h>
-
-
-using namespace std;
-
-
-bool validaCntHilos(int ch);
-
-//vector<int>* mergesort(int* inicio, int* final, vector<int>* vector);
-
-
-int main(int argc, char* argv[]) {
-	vector<int> aleatorios; //Lista de números
-	vector<int> resultado; //Resultados de Merge
-	vector<vector<int>> vectores; // Vector de Vectores
-	vector<int> myVector; // El que guardamos las copias de aleatorios 
-	vector<int> merge1;
-	vector<int> merge2;
-
-	int tCount = 0;
-	int	n, data_count, local_inicio, local_final, local_n, my_Rank;
-
-	while (!validaCntHilos(tCount)) {
-		cout << "Digite la cantidad de hilos ( >= 1 ): ";
-		cin >> tCount;
-		cout << "Cantidad de numeros: Ajua, aua aua" << endl;
-		cin >> data_count;
-		cout << endl;
-	}
-
-	int k = 0;
-	aleatorios.reserve(data_count);
-	vectores.reserve(data_count);
-	local_n = data_count / tCount;
-
-	for (int i = 0; i < data_count; i++) {
-		k = rand() % 100 + 1;
-		aleatorios.push_back(k);
-	}
-
-	myVector.reserve(local_n);
-
-#pragma omp parallel num_threads(tCount) private(local_inicio,local_final,my_Rank, myVector)
-	{
-		myVector.clear();//JustInCase
-		my_Rank = omp_get_thread_num();
-		local_inicio = local_n * my_Rank;
-		local_final = local_n + local_inicio;
-		sort((aleatorios.begin() + local_inicio), (aleatorios.begin() + local_final));
-		for (int i = local_inicio; i < local_final; i++) {
-			myVector.push_back(aleatorios[i]); //Hay que cambiar esto para la versión paralela del merge
-		}
-#pragma omp critical
-		vectores.push_back(myVector);
-	}
-
-	std::cout << "Lista contiene:";
-	for (std::vector<int>::iterator it = aleatorios.begin(); it != aleatorios.end(); ++it)
-		std::cout << ' ' << *it;
-	cout << '\n';
-	
-	
-	int i2, f2; //-------------------------------------Merge sin paralelizar------------------------------------------------
-	int mitad = aleatorios.size()/ 2;
-	resultado.resize(data_count);
-	local_final = local_n;
-	merge1.reserve(local_n);
-	merge2.reserve(local_n);
-	while(vectores.size()!=1){
-		resultado.clear();
-		resultado.resize(vectores[0].size()*2, 0);
-		merge1 = vectores[0];
-		merge2 = vectores[1];
-		merge(merge1.begin(), merge1.end(), merge2.begin(), merge2.end(), resultado.begin());
-		aleatorios = resultado;
-		vectores.push_back(aleatorios);
-		vectores.erase(vectores.begin());
-		vectores.erase(vectores.begin());
-	}
-
-	std::cout << "El resultado es: ";
-	for (std::vector<int>::iterator it = resultado.begin(); it != resultado.end(); it++)
-		std::cout << ' ' << *it;
-	std::cout << '\n';
-	//---------------------------------------------------------------------------------------------------------------------
-
-	cin >> n;
-	return 0;
-}
-
-bool validaCntHilos(int ch) {
-	return ch >= 1;
-}*/
